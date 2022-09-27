@@ -22,6 +22,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureText = true;
   bool _loading = false;
 
+  @override
+  void dispose() {
+    _email.dispose();
+    _pass.dispose();
+    super.dispose();
+  }
+
   void showToast(String message) {
     Fluttertoast.showToast(
       msg: message,

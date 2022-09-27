@@ -1,16 +1,17 @@
+import 'package:QuizApp/screens/home_page.dart';
+import 'package:QuizApp/screens/topics.dart';
+import 'package:QuizApp/widgets/body_constraint.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:QuizApp/screens/topics.dart';
-import 'package:QuizApp/widgets/body_constraint.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 
 import '../models/create_quiz.dart';
 
 class UserHomeScreen extends StatelessWidget {
   static const routeName = '/user_home_screen';
-
-  const UserHomeScreen({Key? key}) : super(key: key);
+  UserHomeScreen({Key? key}) : super(key: key);
+  final _userAuth = FirebaseAuth.instance.currentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +25,29 @@ class UserHomeScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          if (_userAuth!.uid == "3o24mZeno5Y4UFKXohjFBOnF2JQ2")
+                            ElevatedButton(
+                              onPressed: () =>
+                                  Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => const HomePage(),
+                                ),
+                              ),
+                              child: const Text(
+                                "Add Questions",
+                              ),
+                            ),
                           IconButton(
-                              onPressed: () {
-                                Navigator.of(context).pushReplacementNamed('/');
-                                FirebaseAuth.instance.signOut();
-                              },
-                              icon: const Icon(Icons.logout))
+                            onPressed: () {
+                              Navigator.of(context).pushReplacementNamed('/');
+                              FirebaseAuth.instance.signOut();
+                            },
+                            icon: const Icon(
+                              Icons.logout,
+                            ),
+                          ),
                         ],
                       ),
                       Row(
@@ -149,11 +165,26 @@ class UserHomeScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (_userAuth!.uid == "3o24mZeno5Y4UFKXohjFBOnF2JQ2")
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const HomePage(),
+                            ),
+                          ),
+                          child: const Text(
+                            "Add Questions",
+                          ),
+                        ),
                       IconButton(
-                          onPressed: () {
-                            FirebaseAuth.instance.signOut();
-                          },
-                          icon: const Icon(Icons.logout))
+                        onPressed: () {
+                          FirebaseAuth.instance.signOut();
+                        },
+                        icon: const Icon(
+                          Icons.logout,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(

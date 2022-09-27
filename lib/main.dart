@@ -46,9 +46,9 @@ class MyApp extends StatelessWidget {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               User userData = snapshot.data as User;
-              return userData.uid == 'SXRgOZgVWgWR7AuojTI26BKJyK92'
+              return userData.uid == '3o24mZeno5Y4UFKXohjFBOnF2JQ2'
                   ? const HomePage()
-                  : const UserHomeScreen();
+                  : UserHomeScreen();
             } else {
               return const LoginScreen();
             }
@@ -56,7 +56,7 @@ class MyApp extends StatelessWidget {
       getPages: [
         GetPage(
           name: UserHomeScreen.routeName,
-          page: () => const UserHomeScreen(),
+          page: () => UserHomeScreen(),
         ),
         GetPage(
           name: QuizScreen.routeName,

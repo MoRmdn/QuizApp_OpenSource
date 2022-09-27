@@ -1,12 +1,13 @@
+import 'dart:developer';
 import 'dart:html';
 
+import 'package:QuizApp/models/create_quiz.dart';
+import 'package:QuizApp/screens/users_home.dart';
+import 'package:QuizApp/widgets/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_indicators/progress_indicators.dart';
-import 'package:QuizApp/models/create_quiz.dart';
-import 'package:QuizApp/screens/users_home.dart';
-import 'package:QuizApp/widgets/image_picker.dart';
 
 class FormBuilderPC extends StatefulWidget {
   const FormBuilderPC({Key? key}) : super(key: key);
@@ -32,13 +33,14 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
   bool _loadingTopics = false;
   bool _loadingImage = false;
   bool _loading = false;
-  String? _path;
   String? correctAnswer;
-  List _topicsList = ['Choose Topic'];
+  List _existingTopicsList = ['Existing Topics'];
+  List _existingDomainList = ['Existing Domains'];
   String? dropDownDomain;
   String? dropDownTopic;
   File? _image;
   String? imageURL;
+  bool loadingDomains = true;
 
   @override
   void dispose() {
@@ -46,11 +48,29 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
     _topic.dispose();
     _question.dispose();
     _correctAnswer.dispose();
+    _illustration.dispose();
     _a2.dispose();
     _a3.dispose();
     _a4.dispose();
-    // TODO: implement dispose
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    getExistingDomainValues();
+    super.initState();
+  }
+
+  Future<void> getExistingDomainValues() async {
+    final oldDomainsSnap = await _db.get();
+    final oldDomains = oldDomainsSnap.data();
+    if (oldDomains!.isNotEmpty) {
+      _existingDomainList = oldDomains["Domains"];
+      log("there is domains");
+    }
+    setState(() {
+      loadingDomains = false;
+    });
   }
 
   Future<void> getImage(File image) async {
@@ -63,8 +83,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
       _loadingImage = true;
     });
     await _ref.putBlob(_image);
-    imageURL =
-        await _ref.getDownloadURL().whenComplete(() => print('Complete'));
+    imageURL = await _ref.getDownloadURL().whenComplete(() => log('Complete'));
 
     setState(() {
       _loadingImage = false;
@@ -72,40 +91,46 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
   }
 
   Future<void> getTopics() async {
-    _topicsList = ['Choose Topic'];
-    setState(() {
-      _loadingTopics = true;
-    });
-    var mapList = await _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .get();
-    if (mapList.exists) {
+    _existingTopicsList = ['Existing Topics'];
+    if (_existingTopicsList.length == 1) {
       setState(() {
-        _topicsList = mapList['Topics'];
-        _topicsList.add('Choose Topic');
+        _loadingTopics = true;
+      });
+      var mapList = await _db
+          .collection(_domain.text)
+          .doc("${_domain.text.trim()}_Path")
+          .get();
+      if (mapList.exists) {
+        setState(() {
+          _existingTopicsList = mapList['Topics'];
+
+          _loadingTopics = false;
+        });
+      }
+      setState(() {
         _loadingTopics = false;
       });
     }
   }
 
-  Future<void> _test() async {
-    final DB = FirebaseFirestore.instance.collection('DB');
-    DB.get().then((value) {
-      print(value.size);
-      if (value.size > 0) {
-        value.docs.map((e) {
-          print(e);
-        }).toList();
-        setState(() {});
-      }
-    }).catchError((error) {
-      print(error);
-    });
-  }
+  // Future<void> _test() async {
+  //   final DB = FirebaseFirestore.instance.collection('DB');
+  //   DB.get().then((value) {
+  //     print(value.size);
+  //     if (value.size > 0) {
+  //       value.docs.map((e) {
+  //         print(e);
+  //       }).toList();
+  //       setState(() {});
+  //     }
+  //   }).catchError((error) {
+  //     print(error);
+  //   });
+  // }
 
   Future<void> _onSave() async {
     List<String> answers = [];
+
     answers.addAll([
       _a3.text,
       _correctAnswer.text,
@@ -118,10 +143,10 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
       _loading = true;
     });
 
-    _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .collection(_path!)
+    await _db
+        .collection(_domain.text)
+        .doc("${_domain.text}_Path")
+        .collection(_topic.text)
         .doc()
         .set({
       'imageURl': imageURL,
@@ -129,24 +154,26 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
       'correctAnswer': _correctAnswer.text,
       'illustration': _illustration.text,
       'answers': newList,
+    }).then((value) {
+      if (!_existingDomainList.contains(_domain.text)) {
+        _existingDomainList.add(
+          _domain.text,
+        );
+        _db.set({
+          "Domains": _existingDomainList,
+        });
+      }
     });
 
-    final oldData = await _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .get();
-    final Map<String, dynamic> oldMap = oldData.data() as Map<String, dynamic>;
-    List z = oldMap['Topics'] ?? [];
-    if (!z.contains(_path)) {
-      z.add(_path);
+    if (!_existingTopicsList.contains(_topic.text)) {
+      _existingTopicsList.add(_topic.text);
+      await _db
+          .collection(_domain.text)
+          .doc("${_domain.text.trim()}_Path")
+          .set({
+        'Topics': _existingTopicsList,
+      });
     }
-
-    await _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .set({
-      'Topics': z,
-    });
 
     setState(() {
       _loading = false;
@@ -171,26 +198,49 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      borderRadius: BorderRadius.circular(25),
-                      hint: const Text('Choose Domain'),
-                      value: dropDownDomain,
-                      items: domainName.map<DropdownMenuItem<String>>((e) {
-                        return DropdownMenuItem(value: e, child: Text(e));
-                      }).toList(),
-                      onChanged: (String? newValue) {
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _domain,
+                      decoration:
+                          const InputDecoration(hintText: 'Domain Name'),
+                      onChanged: (val) {
                         setState(() {
-                          dropDownDomain = newValue;
-                          _topic.text = '';
-                          dropDownTopic = 'Choose Topic';
                           getTopics();
                         });
                       },
-                      icon: const Icon(Icons.keyboard_arrow_down),
-                      alignment: Alignment.bottomCenter,
                     ),
                   ),
+                  loadingDomains
+                      ? Expanded(
+                          child: JumpingDotsProgressIndicator(
+                            fontSize: 50,
+                            color: Colors.blueAccent,
+                          ),
+                        )
+                      : Expanded(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            borderRadius: BorderRadius.circular(25),
+                            hint: const Text('Existing Domains'),
+                            value: dropDownDomain,
+                            items: _existingDomainList
+                                .map<DropdownMenuItem<String>>((e) {
+                              return DropdownMenuItem(value: e, child: Text(e));
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                if (newValue != "Existing Domains") {
+                                  _domain.text = newValue!;
+                                } else {
+                                  _domain.text = '';
+                                }
+                                getTopics();
+                              });
+                            },
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            alignment: Alignment.bottomCenter,
+                          ),
+                        ),
                 ],
               ),
               const SizedBox(
@@ -203,10 +253,10 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
                     child: TextFormField(
                       controller: _topic,
                       decoration:
-                          const InputDecoration(hintText: 'Choose Topics'),
+                          const InputDecoration(hintText: 'Existing Topics'),
                       onChanged: (val) {
                         setState(() {
-                          _path = val;
+                          getTopics();
                         });
                       },
                     ),
@@ -221,17 +271,15 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
                           child: DropdownButton<String>(
                             isExpanded: true,
                             borderRadius: BorderRadius.circular(25),
-                            hint: const Text('Choose'),
+                            hint: const Text('Topic Name'),
                             value: dropDownTopic,
-                            items:
-                                _topicsList.map<DropdownMenuItem<String>>((e) {
+                            items: _existingTopicsList
+                                .map<DropdownMenuItem<String>>((e) {
                               return DropdownMenuItem(value: e, child: Text(e));
                             }).toList(),
                             onChanged: (String? newValue) {
                               setState(() {
-                                dropDownTopic = newValue;
-                                _path = newValue;
-                                if (newValue != "Choose Topic") {
+                                if (newValue != "Existing Topics") {
                                   _topic.text = newValue!;
                                 }
                               });
@@ -414,7 +462,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const UserHomeScreen(),
+                          builder: (_) => UserHomeScreen(),
                         ),
                       );
                     },
