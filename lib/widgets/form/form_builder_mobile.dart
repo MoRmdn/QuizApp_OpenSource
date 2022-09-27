@@ -1,11 +1,11 @@
 // import 'dart:html';
 
+import 'package:QuizApp/models/create_quiz.dart';
+import 'package:QuizApp/screens/users_home.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:progress_indicators/progress_indicators.dart';
-import 'package:QuizApp/models/create_quiz.dart';
-import 'package:QuizApp/screens/users_home.dart';
 
 class FormBuilderMobile extends StatefulWidget {
   const FormBuilderMobile({Key? key}) : super(key: key);
@@ -29,7 +29,6 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
   final TextEditingController _a4 = TextEditingController();
   final QuizCreate _create = QuizCreate();
   bool _loadingTopics = false;
-
   bool _loading = false;
   String? _path;
   String? correctAnswer;
@@ -89,20 +88,20 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
     }
   }
 
-  Future<void> _test() async {
-    final DB = FirebaseFirestore.instance.collection('DB');
-    DB.get().then((value) {
-      print(value.size);
-      if (value.size > 0) {
-        value.docs.map((e) {
-          print(e);
-        }).toList();
-        setState(() {});
-      }
-    }).catchError((error) {
-      print(error);
-    });
-  }
+  // Future<void> _test() async {
+  //   final DB = FirebaseFirestore.instance.collection('DB');
+  //   DB.get().then((value) {
+  //     print(value.size);
+  //     if (value.size > 0) {
+  //       value.docs.map((e) {
+  //         print(e);
+  //       }).toList();
+  //       setState(() {});
+  //     }
+  //   }).catchError((error) {
+  //     print(error);
+  //   });
+  // }
 
   Future<void> _onSave() async {
     List<String> answers = [];
@@ -411,7 +410,7 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const UserHomeScreen(),
+                          builder: (_) => UserHomeScreen(),
                         ),
                       );
                     },
