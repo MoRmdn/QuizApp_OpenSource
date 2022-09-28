@@ -1,16 +1,13 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/animation.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:QuizApp/models/question_model.dart';
 import 'package:QuizApp/screens/quiz_screen.dart';
 import 'package:QuizApp/screens/users_home.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-import '../models/create_quiz.dart';
 import '../screens/result_screen/result_screen.dart';
 
 class QuizController extends GetxController {
@@ -22,8 +19,10 @@ class QuizController extends GetxController {
 
   int get countOfFlaged => _flagedList.length;
 
-  Future<void> fetchData(String domainValue, String topic) async {
-    print(topic);
+  Future<void> fetchTopicData(
+    String domainName,
+    String topicName,
+  ) async {
     final _db =
         FirebaseFirestore.instance.collection('DB').doc('h60FQ93NHwIx4sGvedTY');
 
@@ -32,9 +31,9 @@ class QuizController extends GetxController {
 
     try {
       final getTopic = await _db
-          .collection(domainNameForPath[domainValue]!)
-          .doc(domainID[domainNameForPath[domainValue]!])
-          .collection(topic)
+          .collection(domainName)
+          .doc("${domainName}_Path")
+          .collection(topicName)
           .get();
 
       final listOfQuestions = getTopic.docs;
@@ -100,7 +99,7 @@ class QuizController extends GetxController {
 
   int maxSec = 45;
 
-  RxInt _sec = 45.obs;
+  final RxInt _sec = 45.obs;
 
   RxInt get sec => _sec;
 

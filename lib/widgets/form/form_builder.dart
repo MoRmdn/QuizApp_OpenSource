@@ -159,6 +159,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
         _existingDomainList.add(
           _domain.text,
         );
+        _existingDomainList.remove('Existing Domains');
         _db.set({
           "Domains": _existingDomainList,
         });
@@ -167,6 +168,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
 
     if (!_existingTopicsList.contains(_topic.text)) {
       _existingTopicsList.add(_topic.text);
+      _existingTopicsList.remove('Existing Topics');
       await _db
           .collection(_domain.text)
           .doc("${_domain.text.trim()}_Path")
@@ -252,8 +254,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
                     flex: 3,
                     child: TextFormField(
                       controller: _topic,
-                      decoration:
-                          const InputDecoration(hintText: 'Existing Topics'),
+                      decoration: const InputDecoration(hintText: 'Topic Name'),
                       onChanged: (val) {
                         setState(() {
                           getTopics();
@@ -271,7 +272,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
                           child: DropdownButton<String>(
                             isExpanded: true,
                             borderRadius: BorderRadius.circular(25),
-                            hint: const Text('Topic Name'),
+                            hint: const Text("Existing Topics"),
                             value: dropDownTopic,
                             items: _existingTopicsList
                                 .map<DropdownMenuItem<String>>((e) {
@@ -462,7 +463,7 @@ class _FormBuilderPCState extends State<FormBuilderPC> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => UserHomeScreen(),
+                          builder: (_) => const UserHomeScreen(),
                         ),
                       );
                     },

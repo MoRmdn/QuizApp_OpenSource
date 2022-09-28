@@ -1,5 +1,7 @@
 // import 'dart:html';
 
+import 'dart:developer';
+
 import 'package:QuizApp/models/create_quiz.dart';
 import 'package:QuizApp/screens/users_home.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,12 +31,15 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
   final TextEditingController _a4 = TextEditingController();
   final QuizCreate _create = QuizCreate();
   bool _loadingTopics = false;
+  final bool _loadingImage = false;
   bool _loading = false;
-  String? _path;
   String? correctAnswer;
-  List _topicsList = ['Choose Topic'];
+  List _existingTopicsList = ['Existing Topics'];
+  List _existingDomainList = ['Existing Domains'];
   String? dropDownDomain;
   String? dropDownTopic;
+
+  bool loadingDomains = true;
 
   // File? _image;
   String? imageURL;
@@ -45,10 +50,10 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
     _topic.dispose();
     _question.dispose();
     _correctAnswer.dispose();
+    _illustration.dispose();
     _a2.dispose();
     _a3.dispose();
     _a4.dispose();
-    // TODO: implement dispose
     super.dispose();
   }
 
@@ -70,19 +75,36 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
   //   });
   // }
 
-  Future<void> getTopics() async {
-    _topicsList = ['Choose Topic'];
+  Future<void> getExistingDomainValues() async {
+    final oldDomainsSnap = await _db.get();
+    final oldDomains = oldDomainsSnap.data();
+    if (oldDomains!.isNotEmpty) {
+      _existingDomainList = oldDomains["Domains"];
+      log("there is domains");
+    }
     setState(() {
-      _loadingTopics = true;
+      loadingDomains = false;
     });
-    var mapList = await _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .get();
-    if (mapList.exists) {
+  }
+
+  Future<void> getTopics() async {
+    _existingTopicsList = ['Existing Topics'];
+    if (_existingTopicsList.length == 1) {
       setState(() {
-        _topicsList = mapList['Topics'];
-        _topicsList.add('Choose Topic');
+        _loadingTopics = true;
+      });
+      var mapList = await _db
+          .collection(_domain.text)
+          .doc("${_domain.text.trim()}_Path")
+          .get();
+      if (mapList.exists) {
+        setState(() {
+          _existingTopicsList = mapList['Topics'];
+
+          _loadingTopics = false;
+        });
+      }
+      setState(() {
         _loadingTopics = false;
       });
     }
@@ -118,9 +140,9 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
     });
 
     _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .collection(_path!)
+        .collection(_domain.text)
+        .doc("${_domain.text}_Path")
+        .collection(_topic.text)
         .doc()
         .set({
       'imageURl': imageURL,
@@ -128,24 +150,28 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
       'correctAnswer': _correctAnswer.text,
       'illustration': _illustration.text,
       'answers': newList,
+    }).then((value) {
+      if (!_existingDomainList.contains(_domain.text)) {
+        _existingDomainList.add(
+          _domain.text,
+        );
+        _existingDomainList.remove('Existing Domains');
+        _db.set({
+          "Domains": _existingDomainList,
+        });
+      }
     });
 
-    final oldData = await _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .get();
-    final Map<String, dynamic> oldMap = oldData.data() as Map<String, dynamic>;
-    List z = oldMap['Topics'] ?? [];
-    if (!z.contains(_path)) {
-      z.add(_path);
+    if (!_existingTopicsList.contains(_topic.text)) {
+      _existingTopicsList.add(_topic.text);
+      _existingTopicsList.remove('Existing Topics');
+      await _db
+          .collection(_domain.text)
+          .doc("${_domain.text.trim()}_Path")
+          .set({
+        'Topics': _existingTopicsList,
+      });
     }
-
-    await _db
-        .collection(domainNameForPath[dropDownDomain]!)
-        .doc(domainID[domainNameForPath[dropDownDomain]!])
-        .set({
-      'Topics': z,
-    });
 
     setState(() {
       _loading = false;
@@ -170,26 +196,51 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      borderRadius: BorderRadius.circular(25),
-                      hint: const Text('Choose Domain'),
-                      value: dropDownDomain,
-                      items: domainName.map<DropdownMenuItem<String>>((e) {
-                        return DropdownMenuItem(value: e, child: Text(e));
-                      }).toList(),
-                      onChanged: (String? newValue) {
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _domain,
+                      decoration:
+                          const InputDecoration(hintText: 'Domain Name'),
+                      onChanged: (val) {
                         setState(() {
-                          dropDownDomain = newValue;
-                          _topic.text = '';
-                          dropDownTopic = 'Choose Topic';
                           getTopics();
                         });
                       },
-                      icon: const Icon(Icons.keyboard_arrow_down),
-                      alignment: Alignment.bottomCenter,
                     ),
                   ),
+                  loadingDomains
+                      ? Expanded(
+                          child: JumpingDotsProgressIndicator(
+                            fontSize: 50,
+                            color: Colors.blueAccent,
+                          ),
+                        )
+                      : Expanded(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            borderRadius: BorderRadius.circular(25),
+                            hint: const Text('Existing Domains'),
+                            value: dropDownDomain,
+                            items: _existingDomainList
+                                .map<DropdownMenuItem<String>>((e) {
+                              return DropdownMenuItem(value: e, child: Text(e));
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(
+                                () {
+                                  if (newValue != "Existing Domains") {
+                                    _domain.text = newValue!;
+                                  } else {
+                                    _domain.text = '';
+                                  }
+                                  getTopics();
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            alignment: Alignment.bottomCenter,
+                          ),
+                        ),
                 ],
               ),
               const SizedBox(
@@ -201,11 +252,10 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
                     flex: 3,
                     child: TextFormField(
                       controller: _topic,
-                      decoration:
-                          const InputDecoration(hintText: 'Choose Topics'),
+                      decoration: const InputDecoration(hintText: 'Topic Name'),
                       onChanged: (val) {
                         setState(() {
-                          _path = val;
+                          getTopics();
                         });
                       },
                     ),
@@ -220,17 +270,15 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
                           child: DropdownButton<String>(
                             isExpanded: true,
                             borderRadius: BorderRadius.circular(25),
-                            hint: const Text('Choose'),
+                            hint: const Text('Existing Topics'),
                             value: dropDownTopic,
-                            items:
-                                _topicsList.map<DropdownMenuItem<String>>((e) {
+                            items: _existingTopicsList
+                                .map<DropdownMenuItem<String>>((e) {
                               return DropdownMenuItem(value: e, child: Text(e));
                             }).toList(),
                             onChanged: (String? newValue) {
                               setState(() {
-                                dropDownTopic = newValue;
-                                _path = newValue;
-                                if (newValue != "Choose Topic") {
+                                if (newValue != "Existing Topics") {
                                   _topic.text = newValue!;
                                 }
                               });
@@ -410,7 +458,7 @@ class _FormBuilderMobileState extends State<FormBuilderMobile> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => UserHomeScreen(),
+                          builder: (_) => const UserHomeScreen(),
                         ),
                       );
                     },

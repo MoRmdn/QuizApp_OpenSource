@@ -1,25 +1,22 @@
+import 'package:QuizApp/provider/data_provider.dart';
+import 'package:QuizApp/screens/quiz_screen.dart';
+import 'package:QuizApp/widgets/body_constraint.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:QuizApp/provider/data_provider.dart';
-import 'package:QuizApp/screens/quiz_screen.dart';
-import 'package:QuizApp/widgets/body_constraint.dart';
 import 'package:responsive_builder/responsive_builder.dart';
-
-import '../models/create_quiz.dart';
 
 // ignore: must_be_immutable
 class TopicsScreen extends StatefulWidget {
   static const routeName = '/topics_screen';
-  String? domainKey;
-  String? domainValue;
+
+  String? domainName;
 
   TopicsScreen({
     Key? key,
-    this.domainKey,
-    this.domainValue,
+    this.domainName,
   }) : super(key: key);
 
   @override
@@ -29,21 +26,21 @@ class TopicsScreen extends StatefulWidget {
 class _TopicsScreenState extends State<TopicsScreen> {
   final _db =
       FirebaseFirestore.instance.collection('DB').doc('h60FQ93NHwIx4sGvedTY');
-  List? topics;
+  List topics = [];
 
   Future<void> getDomainTopics() async {
     final mapList = await _db
-        .collection(widget.domainKey!)
-        .doc(domainID[widget.domainKey!])
+        .collection(widget.domainName!)
+        .doc("${widget.domainName}_Path")
         .get();
     setState(() {
       topics = mapList['Topics'];
     });
   }
 
-  Future<void> getQuestions(String topics) async {
+  Future<void> getQuestions(String topicName) async {
     // .fetchData(widget.domainValue!, topics);
-    Get.find<QuizController>().fetchData(widget.domainValue!, topics);
+    Get.find<QuizController>().fetchTopicData(widget.domainName!, topicName);
   }
 
   void startWithTimer(String topic) {
@@ -52,7 +49,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
         builder: (_) {
           Get.find<QuizController>().startTimer();
           return QuizScreen(
-            domain: widget.domainValue!,
+            domain: widget.domainName!,
             topic: topic,
             timer: true,
           );
@@ -66,7 +63,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
       MaterialPageRoute(
         builder: (_) {
           return QuizScreen(
-            domain: widget.domainValue!,
+            domain: widget.domainName!,
             topic: topic,
             timer: false,
           );
@@ -82,7 +79,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.domainKey!,
+          widget.domainName!,
         ),
         elevation: 0,
         foregroundColor: Theme.of(context).colorScheme.secondary,
@@ -109,7 +106,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               AutoSizeText(
-                                widget.domainValue!,
+                                widget.domainName!,
                                 minFontSize: 35,
                                 maxFontSize: 50,
                                 style: const TextStyle(
@@ -130,10 +127,10 @@ class _TopicsScreenState extends State<TopicsScreen> {
                           child: SingleChildScrollView(
                             child: Column(
                               children: topics != null
-                                  ? topics!.map((e) {
+                                  ? topics.map((topicName) {
                                       return InkWell(
                                         onTap: () {
-                                          getQuestions(e);
+                                          getQuestions(topicName);
 
                                           AwesomeDialog(
                                             width: 500,
@@ -143,14 +140,15 @@ class _TopicsScreenState extends State<TopicsScreen> {
                                             title: 'Timed Quiz',
                                             desc:
                                                 'do you want to start Quiz with timer 45s for the question',
-                                            btnCancelOnPress: () => start(e),
+                                            btnCancelOnPress: () =>
+                                                start(topicName),
                                             btnOkOnPress: () =>
-                                                startWithTimer(e),
+                                                startWithTimer(topicName),
                                           ).show();
                                         },
                                         child: ListTile(
                                           title: Text(
-                                            e,
+                                            topicName,
                                             style: const TextStyle(
                                               fontSize: 25,
                                             ),
@@ -185,7 +183,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               AutoSizeText(
-                                widget.domainValue!,
+                                widget.domainName!,
                                 minFontSize: 20,
                                 maxFontSize: 25,
                                 style: const TextStyle(
@@ -209,10 +207,10 @@ class _TopicsScreenState extends State<TopicsScreen> {
                         child: SingleChildScrollView(
                           child: Column(
                             children: topics != null
-                                ? topics!.map((e) {
+                                ? topics.map((topicName) {
                                     return InkWell(
                                       onTap: () {
-                                        getQuestions(e);
+                                        getQuestions(topicName);
                                         AwesomeDialog(
                                           width: 500,
                                           context: context,
@@ -221,12 +219,14 @@ class _TopicsScreenState extends State<TopicsScreen> {
                                           title: 'Timed Quiz',
                                           desc:
                                               'do you want to start Quiz with timer 45s for the question',
-                                          btnCancelOnPress: () => start(e),
-                                          btnOkOnPress: () => startWithTimer(e),
+                                          btnCancelOnPress: () =>
+                                              start(topicName),
+                                          btnOkOnPress: () =>
+                                              startWithTimer(topicName),
                                         ).show();
                                       },
                                       child: ListTile(
-                                        title: Text(e),
+                                        title: Text(topicName),
                                         trailing:
                                             const Icon(Icons.arrow_forward_ios),
                                       ),
